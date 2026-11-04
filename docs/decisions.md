@@ -1,0 +1,21 @@
+# Decisions
+
+- ADR-001 – Granularity - day x campaign x country (Country is optional: a source may cover only some countries.);
+  - Country is the usual first point of optimisation of global marketing campaigns;
+  - Day: allows daily trends and cohorts by day N;
+  - Sources without a country split load with `country: null`;
+  - Cost: a few hundred campaign × country rows a month become ≈ 10k daily rows, fine in browser memory;
+- ADR-002 - Cohort fields - cumulative by day N (N = 0, 1, 3, 7, 14, 30);
+  - A common set of windows for mobile game UA, covering the LTV curve over the first month;
+- ADR-003 - Immature Cohorts - `null`, maturity calculated from upload's `asOf` - e.g. if it's yesterday only D0 ROAS is shown; a row is mature for n when `date + n ≤ asOf` of its upload;
+  - Immature cohorts mixing with mature ones might skew the perception of the manager working with data so immature cells stay empty instead of showing understated values;
+- ADR-004 - Campaign Identity - `network:networkCampaignID`;
+  - Network and platform are campaign attributes and both can be traced from current identity;
+  - Names can change while a campaign runs. The network’s id is constant.
+- ADR-005 - IAP calculations - raw data is gross, net calculated inside dashboard based on current Apple/Google policies;
+  - Networks and MMP providers usually show only gross revenue and platform policy per country might change so it's better to have custom implementation that can be easily changed (domain.md StoreeFee table uses some policies that are less than 3 months old);
+- ADR-006 - Missing Data - `No data` is always `null`, completely `null` columns (e.g. the source has no revenue tracking) are hidden;
+- ADR-007 - Template - `vanilla` for now, migrate to `vanilla-ts` later;
+- ADR-008 - Testing - Vitest framework;
+- ADR-009 - Formatter & Linter - Prettier + ESLint;
+  - Prettier's defaults and ESLint recommended JS rules are kept;
