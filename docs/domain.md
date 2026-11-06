@@ -48,7 +48,7 @@ const row = {
 | `spend`                 | number ≥ 0          | measure                     | USD                              | no                                                 | `2998.40`             |
 | `installs`              | integer ≥ 0         | measure                     | installs                         | no                                                 | `632`                 |
 | `impressions`, `clicks` | integer ≥ 0 \| null | measure                     | count                            | yes                                                | `49679`, `17980`      |
-| `retainedD{n}`          | integer \| null     | measure, cohort             | users active on day n            | yes: immature (D3) or not provided                 | `197` (n = 1)         |
+| `retainedD{n}`          | integer \| null     | measure, cohort             | users active on day n            | yes: immature or not provided                      | `197` (n = 1)         |
 | `payersD{n}`            | integer \| null     | measure, cohort, cumulative | distinct payers in days 0…n      | as above                                           | `17` (n = 7)          |
 | `iapRevD{n}`            | number \| null      | measure, cohort, cumulative | USD, gross                       | as above                                           | `239.10` (n = 7)      |
 | `adRevD{n}`             | number \| null      | measure, cohort, cumulative | USD                              | as above                                           | `410.30` (n = 7)      |
@@ -100,7 +100,7 @@ Each source has a column mapping to these fields (AppLovin: `D1Open` → `retain
 | android  | AU, JP      | 2026-09-30    | 25% | 20% service + 5% billing fee, new installs |
 
 The most specific rule wins: exact platform over `*`, then a country list over `*`, then the latest `installedFrom` on or before the row's `date`.
-Apple charges by the date of the purchase, not the date of the install, so keying Apple’s rates on install date is an dashboard approximation. In addition, small-business rates aren't modelled.
+Apple charges by the date of the purchase, not the date of the install, so keying Apple’s rates on install date is a dashboard approximation. In addition, small-business rates aren't modelled.
 
 ## 3. Metric glossary
 
@@ -108,7 +108,7 @@ Every metric is Σ numerator ÷ Σ denominator over the group. Two filters apply
 
 Revenue per row:
 
-- `iapDn` = net `iapRevDn × (1 − fee) ÷ (1 + vat)` by default, or gross `iapRevDn`; a global switch picks (D5).
+- `iapDn` = net `iapRevDn × (1 − fee) ÷ (1 + vat)` by default, or gross `iapRevDn`; a global switch picks.
 - `revenueDn` = `iapDn + adRevDn` if the source has both, otherwise whichever it has, otherwise `revDn`.
 
 ROAS is total ROAS from `revenueDn`, so it works with whatever revenue a source has; IAP and adROAS appear only where the split exists. The header names what went in ("IAP net + ad", "IAP only", "total as reported"), per network when they differ.
@@ -186,7 +186,7 @@ All three share filters (install dates, network, app, platform, goal, country), 
 ## 6. Out of scope
 
 - Creative, ad-set and placement breakdowns → needs a different kind of raw data
-- iOS framework: SKAdNetwork, modeled conversions → different methods apply
+- iOS campaigns (in v1 - see ADR-010)
 - Predicted LTV and profitability curves → varies by product
 - Actual store proceeds (refunds, chargebacks, payouts) → usually take around 6 months to close the period
 - Other currencies and time zones → no practical need
