@@ -1,7 +1,33 @@
+@font-face {
+  font-family: "Monaspace Neon";
+  src: url("./assets/fonts/Monaspace-Neon-Var.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Monaspace Xenon";
+  src: url("./assets/fonts/Monaspace-Xenon-Var.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
 :root {
+  color-scheme: light dark;
+
   --ink-color-draft: oklch(31.91% 0.11 319.57);
   --accent-color-draft: oklch(72.73% 0.14 89.23);
   --paper-color-draft: oklch(91.11% 0.03 84.41);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink-color-draft: oklch(82% 0.08 319.57);
+    --accent-color-draft: oklch(78% 0.13 89.23);
+    --paper-color-draft: oklch(20% 0.02 84.41);
+  }
 }
 
 body {
@@ -13,12 +39,21 @@ body {
   color: var(--ink-color-draft);
 }
 
+main {
+  font-family: "Monaspace Neon", monospace, sans-serif, system-ui;
+}
+
+header,
+footer {
+  font-family: "Monaspace Xenon", monospace, serif, system-ui;
+}
+
 footer {
   position: fixed;
   bottom: 0;
   left: -3px;
   width: 100%;
   text-align: end;
-  color: var(--accent-color-draft);
   font-size: 0.7rem;
+  color: var(--accent-color-draft);
 }
