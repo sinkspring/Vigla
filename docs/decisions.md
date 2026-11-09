@@ -15,6 +15,7 @@
 - ADR-005 - IAP calculations - raw data is gross, net calculated inside dashboard based on current Apple/Google policies
   - Networks and MMP providers usually show only gross revenue and platform policy per country might change so it's better to have custom implementation that can be easily changed (domain.md StoreFee table uses some policies that are less than 3 months old)
 - ADR-006 - Missing Data - `No data` is always `null`, completely `null` columns (e.g. the source has no revenue tracking) are hidden
+  - `sumBy` skips `null` and returns `null` when no row has a value, so "no data" stays distinguishable from a real 0
 - ADR-007 - Language – plain JavaScript first, TypeScript once the domain functions are stable
   - The data model is still changing. Adding types after it settles avoids rewriting them with every change, and the migration then shows where types catch real problems
 - ADR-008 - Testing - Vitest framework
@@ -22,3 +23,5 @@
 - ADR-009 - Formatter & Linter - Prettier + ESLint
   - Prettier's defaults and ESLint recommended JS rules are kept
 - ADR-010 - v1 covers Android only. On iOS, campaign-level attribution is limited (ATT, SKAdNetwork) so performance evaluation relies on different data and methods, `platform` stays for future version update
+- ADR-011 - Marketing metrics calculations (e.g. CPM) return `null` if denominator is `0`, `null` or `undefined`
+  - A ratio with no denominator has no value. `0` would read as a real result, and `Infinity` or `NaN` would break sorting and formatting.
