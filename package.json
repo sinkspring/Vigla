@@ -22,5 +22,8 @@
   },
   "allowScripts": {
     "fsevents@2.3.3": true
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
   }
 }
