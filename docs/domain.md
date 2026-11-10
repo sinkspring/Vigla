@@ -2,6 +2,8 @@
 
 ## 1. One Row
 
+One row describes one UTC day of one campaign in one country: spend, installs that day, and how the users who installed that day retained, paid and generated ad revenue by day n.
+
 ```js
 const row = {
   date: "2026-10-10",
@@ -30,11 +32,9 @@ const row = {
   adRevD14: 512.95,
   adRevD30: null,
 };
-// asOf 2026-11-04; D30 is due 2026-11-09, so it's `null`. CPI = $4.74.
-// ROAS D7 gross = (239.10 + 410.30) / 2998.40 = 21.66%; net = (239.10 × 0.70 + 410.30) / 2998.40 = 19.27%
+// asOf 2026-11-04; D30 is due 2026-11-09, so it's `null`. CPI = $4.74. Android, US, after 2026-06-30: store fee 25%, VAT 0.
+// ROAS D7 gross = (239.10 + 410.30) / 2998.40 = 21.66%; net = (239.10 × 0.75 + 410.30) / 2998.40 = 19.66%
 ```
-
-**One row describes one UTC day of one campaign in one country: how much was spent, how many users were bought that day, and how the users who installed that day retained, paid and generated ad revenue by day n.**
 
 ## 2. Data dictionary
 
@@ -54,7 +54,7 @@ const row = {
 | `adRevD{n}`             | number \| null      | measure, cohort, cumulative | USD                              | as above                                           | `410.30` (n = 7)      |
 | `revD{n}`               | number \| null      | measure, cohort, cumulative | USD, total as reported           | as above; only when the source has no IAP/ad split | `649.40` (n = 7)      |
 
-`{n}` is any window a source provides, commonly 0, 1, 3, 7, 14 and 30. Required: `date`, campaign, `spend`, `installs`.
+`{n}` is any window a source provides, commonly 0, 1, 3, 7, 14 and 30. Required: `date`, `campaignId`, `spend`, `installs`.
 
 ### `Campaign` — dimension, key `id`
 
@@ -77,7 +77,7 @@ Attributes come from upload columns or a campaign file. Names are display text a
 | `name` | string      | dimension            | —                            | no              | `'United Kingdom'` |
 | `vat`  | number 0–1  | rate                 | tax included in store prices | no (0)          | `0.20`             |
 
-`vat` is seeded with standard VAT for the EU-27 (17% in Luxembourg to 27% in Hungary), UK (20%), Norway (25%) and 0 elsewhere (Switzerland is left out in v1).
+`vat` is seeded with standard VAT for the EU-27 (17% in Luxembourg to 27% in Hungary), UK (20%) and Norway (25%), and 0 everywhere else. Switzerland is set to 0 in v1 for convenience.
 
 ### `Upload` — metadata, key `network`
 
@@ -87,7 +87,7 @@ Attributes come from upload columns or a campaign file. Names are display text a
 | `asOf`    | `'YYYY-MM-DD'` | metadata             | last UTC day the export's revenue covers | no              | `'2026-11-04'`                              |
 | `fields`  | string[]       | metadata             | optional fields and windows the file has | no              | `['country', 'impressions', 'iapRevD7', …]` |
 
-Each source has a column mapping to these fields (AppLovin: `D1Open` → `retainedD1`, `D7UniqueP` → `payersD7`, `IAPRev7` → `iapRevD7`). v1: a new upload replaces the previous one for its network. v2 will merge uploads by date, campaign and asOf, keeping cohorts until a maximum window such as D180; an MMP file covering several networks counts as one upload per network. `asOf` defaults to the file's latest `date`: that can blank complete cells but never shows an incomplete one as complete.
+Each source has a column mapping to these fields (AppLovin: `D1Open` → `retainedD1`, `D7UniqueP` → `payersD7`, `IAPRev7` → `iapRevD7`). A new upload replaces the previous one for its network. `asOf` defaults to the file's latest `date`: that can blank complete cells but never shows an incomplete one as complete.
 
 ### `StoreFee` — rates for net IAP
 
@@ -100,7 +100,7 @@ Each source has a column mapping to these fields (AppLovin: `D1Open` → `retain
 | android  | AU, JP      | 2026-09-30    | 25% | 20% service + 5% billing fee, new installs |
 
 The most specific rule wins: exact platform over `*`, then a country list over `*`, then the latest `installedFrom` on or before the row's `date`.
-Apple charges by the date of the purchase, not the date of the install, so keying Apple’s rates on install date is a dashboard approximation. In addition, small-business rates aren't modelled.
+Apple charges by the date of the purchase, not the date of the install, so keying Apple's rates on install date is a dashboard approximation. Small-business rates aren't modelled.
 
 ## 3. Metric glossary
 
@@ -111,7 +111,7 @@ Revenue per row:
 - `iapDn` = net `iapRevDn × (1 − fee) ÷ (1 + vat)` by default, or gross `iapRevDn`; a global switch picks.
 - `revenueDn` = `iapDn + adRevDn` if the source has both, otherwise whichever it has, otherwise `revDn`.
 
-ROAS is total ROAS from `revenueDn`, so it works with whatever revenue a source has; IAP and adROAS appear only where the split exists. The header names what went in ("IAP net + ad", "IAP only", "total as reported"), per network when they differ.
+ROAS is total ROAS from `revenueDn`, so it works with whatever revenue a source has; IAP ROAS and Ad ROAS appear only where the split exists. The header names what went in ("IAP net + ad", "IAP only", "total as reported"), per network when they differ.
 
 | Metric                   | Formula from fields                 | Additive? | Over a group                     | Denominator 0        | Display format     |
 | ------------------------ | ----------------------------------- | --------- | -------------------------------- | -------------------- | ------------------ |
@@ -132,19 +132,19 @@ ROAS is total ROAS from `revenueDn`, so it works with whatever revenue a source 
 | State     | When                         | Cell                                                                               |
 | --------- | ---------------------------- | ---------------------------------------------------------------------------------- |
 | value     | coverage 100%                | `32.5%`                                                                            |
-| partial   | coverage 50–99%              | `32.5%*`; tooltip names what's missing ("cohorts after Aug 3", "Meta: no revenue") |
+| partial   | coverage 50% to under 100%   | `32.5%*`; tooltip names what's missing ("cohorts after Aug 3", "Meta: no revenue") |
 | blank     | coverage < 50%               | empty; tooltip gives the reason ("matures Aug 17")                                 |
 | undefined | denominator 0                | `—`                                                                                |
 | hidden    | no loaded row has the fields | the column, option or filter isn't shown                                           |
 
-### CalcROAS: predicted ROAS (custom metric)
+### CalcROAS: predicted ROAS (custom metric, a benchmark-scaled extrapolation)
 
 ```
 R1 = revenueD1 / spend;  R7 = revenueD7 / spend          // group totals
 predicted = R7 × (1 + (R7/R1 − 1) / (b7/b1 − 1) × (bH/b7 − 1))
 ```
 
-It scales a benchmark ROAS curve (b1 at D1, b7 at D7, bH at DH) by how fast the group grew from D1 to D7 compared with the benchmark; above 1.0, the group is predicted to pay back. b1, b7 and bH are parameters of the metric. It runs once per group (it isn't linear, so per-row results can't be averaged), needs D7 maturity, and gives `null` when R1 is 0.
+It scales a benchmark ROAS curve (b1 at D1, b7 at D7, bH at DH) by how fast the group grew from D1 to D7 compared with the benchmark; above 100%, the group is predicted to pay back. b1, b7 and bH are parameters of the metric. It runs once per group (it isn't linear, so per-row results can't be averaged), needs D7 maturity, and gives `null` when R1 is 0 or `null`, or when b7 = b1.
 
 ## 4. Three screens
 
@@ -154,13 +154,12 @@ All three share filters (install dates, network, app, platform, goal, country), 
 
 - _Question:_ where is the money going this period, and which campaigns pay back (scale, continue monitoring or pause)?
 - _Columns:_ Campaign · Network · Spend · Installs · CPI · CPM · IPM · CPPU D7 · ROAS D0 · ROAS D7 · ROAS D14 · ROAS D30. The totals row is blended.
-- _Controls:_ date range (default: 45 days up to `asOf`), filters, group by campaign / network / app / platform / goal / country, sort, search. A campaign click opens its detail; any other group click becomes a filter.
+- _Controls:_ date range (default: 45 days up to `asOf`), filters, group by campaign / network / app / platform / goal / country, sort, search. A campaign click opens its details; any other group click becomes a filter.
 
-**Campaign detail**
-→
+**Campaign details**
 
 - _Question:_ is this campaign getting better or worse, and why: the auction (CPM) or conversion (IPM), given CPI = CPM ÷ IPM? Which countries carry it, and which should be cut?
-- _Columns:_ KPI tiles (Spend, Installs, CPI, ROAS D0, ROAS D7); trend chart with spend bars, one metric line and note markers; country table, top 15 by spend plus "Other" (Spend, Installs, CPI, CPM, IPM, RR D1, ROAS D0, ROAS D7).
+- _Contents:_ KPI tiles (Spend, Installs, CPI, ROAS D0, ROAS D7); trend chart with spend bars, one metric line and note markers; country table, top 15 by spend plus "Other" (Spend, Installs, CPI, CPM, IPM, RR D1, ROAS D0, ROAS D7).
 - _Controls:_ date range, day / week / month, line metric, click a country to plot it alone, `+ note` on a day.
 
 **Cohort grid**
@@ -170,6 +169,8 @@ All three share filters (install dates, network, app, platform, goal, country), 
 - _Controls:_ cohort size day / week / month; metric ROAS / ARPU / payer % / RR; revenue total / IAP / ad (when split); filters; heatmap within each column; note markers on rows; click a row for the campaign list of those dates.
 
 ## 5. Annotations
+
+An annotation is a dated note on one campaign or on all of them; the campaign details and the cohort grid show it as a note marker.
 
 | Field        | Type                                                                                             | Required | Notes                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------- |
@@ -191,11 +192,15 @@ All three share filters (install dates, network, app, platform, goal, country), 
 - Actual store proceeds (refunds, chargebacks, payouts) → usually take around 6 months to close the period
 - Other currencies and time zones → no practical need
 - Live API connectors and scheduled refresh → needs a backend
-- Organic installs and incrementality → different domain compared with paid UA
+- Organic installs and incrementality → a different domain from paid UA
 - Budgets, bids, alerts, automated rules, write-back to networks → different tool
 - Fraud signals → different tool
-- Reconciling sources → might be added during v2
-- Targets, period-over-period deltas, percent of total and other table calculations → might be added during v2
-- Country tiers and possibility to save country groups → will be added during v2
-- Accounts, permissions, sharing → might be added during final polish
-- AI integration for plain language requests → will be added during final polish
+
+## 7. Planned
+
+- v2: merge uploads by date, campaign and `asOf`, keeping cohorts up to a maximum window such as D180; an MMP file covering several networks counts as one upload per network
+- v2: country tiers and saved country groups
+- v2 (maybe): reconciling sources
+- v2 (maybe): targets, period-over-period deltas, percent of total and other table calculations
+- Final polish: AI integration for plain-language requests
+- Final polish (maybe): accounts, permissions, sharing

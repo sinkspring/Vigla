@@ -1,27 +1,35 @@
 # Decisions
 
-- ADR-001 – Granularity - day x campaign x country (Country is optional: a source may cover only some countries)
+- ADR-001 — Granularity: day × campaign × country (country is optional)
   - Country is the usual first point of optimisation of global marketing campaigns
   - Day: allows daily trends and cohorts by day N
-  - Sources without a country split load with `country: null`
-  - Cost: a few hundred campaign × country rows a month become ≈ 10k daily rows, fine in browser memory
-- ADR-002 - Cohort fields - cumulative by day N (N = 0, 1, 3, 7, 14, 30)
+  - Country is optional because a source may cover only some countries; sources without a country split load with `country: null`
+  - Cost: a few hundred campaign × country combinations a month become ≈ 10k daily rows, which fits in browser memory
+- ADR-002 — Cohort fields: cumulative by day N (N = 0, 1, 3, 7, 14, 30)
   - A common set of windows for mobile game UA, covering the LTV curve over the first month
-- ADR-003 - Immature Cohorts - `null`, maturity calculated from upload's `asOf` - e.g. if it's yesterday only D0 ROAS is shown; a row is mature for n when `date + n ≤ asOf` of its upload
-  - Immature cohorts mixing with mature ones might skew the perception of the manager working with data so immature cells stay empty instead of showing understated values
-- ADR-004 - Campaign Identity - `network:networkCampaignID`
-  - Network and platform are campaign attributes and both can be traced from current identity
-  - Names can change while a campaign runs. The network’s id is constant
-- ADR-005 - IAP calculations - raw data is gross, net calculated inside dashboard based on current Apple/Google policies
-  - Networks and MMP providers usually show only gross revenue and platform policy per country might change so it's better to have custom implementation that can be easily changed (domain.md StoreFee table uses some policies that are less than 3 months old)
-- ADR-006 - Missing Data - `No data` is always `null`, completely `null` columns (e.g. the source has no revenue tracking) are hidden
+- ADR-003 — Immature cohorts: immature cohort cells are `null`
+  - Rule: a row is mature for n when `date + n ≤ asOf` of its upload
+  - Example: for a row dated on `asOf`, only D0 is mature
+  - Averaging immature cohorts with mature ones understates the metric, so the cell stays empty rather than showing a low value as if it were final
+- ADR-004 — Campaign identity: `network:networkCampaignID`
+  - Network is a campaign attribute and can be read from the ID
+  - Names can change while a campaign runs; the network's ID does not
+- ADR-005 — IAP revenue: raw data is gross; net is calculated in the dashboard from current Apple/Google policies
+  - Networks and MMP providers usually show only gross revenue, and platform policy per country might change, so it's better to have a custom implementation that can be easily changed (rates changed several times in 2025–26)
+  - Net also removes VAT, using the `vat` rate of the row's country (domain.md)
+- ADR-006 — Missing data: "no data" is always `null`; columns that are `null` in every row (e.g. the source has no revenue tracking) are hidden
   - `sumBy` skips `null` and returns `null` when no row has a value, so "no data" stays distinguishable from a real 0
-- ADR-007 - Language – plain JavaScript first, TypeScript once the domain functions are stable
+- ADR-007 — Language: plain JavaScript first, TypeScript once the domain functions are stable
   - The data model is still changing. Adding types after it settles avoids rewriting them with every change, and the migration then shows where types catch real problems
-- ADR-008 - Testing - Vitest framework
-  - Uses the same configuration and module handling as the app, so ES modules (and TypeScript later) work in tests without extra setup
-- ADR-009 - Formatter & Linter - Prettier + ESLint
-  - Prettier's defaults and ESLint recommended JS rules are kept
-- ADR-010 - v1 covers Android only. On iOS, campaign-level attribution is limited (ATT, SKAdNetwork) so performance evaluation relies on different data and methods, `platform` stays for future version update
-- ADR-011 - Marketing metrics calculations (e.g. CPM) return `null` if denominator is `0`, `null` or `undefined`
+- ADR-008 — Testing: Vitest
+  - Vitest reuses the app's Vite config and module handling, so ES modules (and TypeScript later) work in tests without extra setup
+- ADR-009 — Formatter and linter: Prettier + ESLint
+  - The standard pair for JavaScript projects; no project-specific need called for an alternative
+  - Configuration: Prettier defaults and ESLint's recommended JS rules
+- ADR-010 — Platform scope: v1 covers Android only
+  - On iOS, campaign-level attribution is limited (ATT, SKAdNetwork), so performance evaluation needs different data and methods
+  - The `platform` field stays so iOS can be added later
+- ADR-011 — Ratio metrics: marketing ratios (e.g. CPM) return `null` when the denominator is `0`, `null` or `undefined`
   - A ratio with no denominator has no value. `0` would read as a real result, and `Infinity` or `NaN` would break sorting and formatting.
+- ADR-012 — Partial groups: a group cell is shown when at least 50% of its spend passes the maturity and field filters; 50% to under 100% is marked `*`, below 50% is blank
+  - The 50% threshold: partly mature data can still show the performance trend on projects with a short conversion window
