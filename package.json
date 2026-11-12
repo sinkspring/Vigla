@@ -25,5 +25,8 @@
   },
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1"
   }
 }
