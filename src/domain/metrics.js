@@ -1,5 +1,6 @@
-/**
- * Adds up one numeric field across rows.
+import { Temporal } from "@js-temporal/polyfill";
+
+/** Adds up one numeric field across rows.
  *
  * Skips null and undefined values (missing data is not treated as 0).
  * Returns null if no row has a value for the field, including empty input,
@@ -31,6 +32,27 @@ function sumBy(rows, field) {
 function safeDivide(numerator, denominator) {
   if (denominator === 0 || denominator == null) return null;
   return numerator / denominator;
+}
+
+/** Splits rows into groups by a key.
+ *
+ * @param {Array<Object>} rows - Data rows;
+ * @param {(row: Object) => string} keyFunc - Returns the group key for a row, e.g. `(row) => row.campaignId`
+ * @returns {Object<string, Array<Object>>} Null-prototype object: key → rows, in original order
+ */
+function groupBy(rows, keyFunc) {
+  return Object.groupBy(rows, keyFunc);
+}
+
+/** Whether a cohort is old enough for day-n metrics: `date + n ≤ asOf` (ADR-003).
+ *
+ * @param {Temporal.PlainDate} date - Install date of the cohort (the row's date)
+ * @param {number} n - Cohort window in days, e.g. 7 for D7
+ * @param {Temporal.PlainDate} asOf - Last day the upload's revenue covers
+ * @returns {boolean}
+ */
+function isMature(date, n, asOf) {
+  return Temporal.PlainDate.compare(date.add({ days: n }), asOf) <= 0;
 }
 
 /** Cost per install. Returns null when `installs` is 0, null or undefined.
@@ -65,4 +87,4 @@ function ipm(installs, impressions) {
   return perImpression === null ? null : perImpression * 1000;
 }
 
-export { sumBy, safeDivide, cpi, cpm, ipm };
+export { sumBy, safeDivide, groupBy, isMature, cpi, cpm, ipm };

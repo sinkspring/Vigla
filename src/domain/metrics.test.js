@@ -1,6 +1,15 @@
 import { describe, expect, test } from "vitest";
-import { sumBy, safeDivide, cpi, cpm, ipm } from "./metrics.js";
-import { fixture } from "../data/fixture.js";
+import {
+  sumBy,
+  safeDivide,
+  groupBy,
+  isMature,
+  cpi,
+  cpm,
+  ipm,
+} from "./metrics.js";
+import { fixture, asOf } from "../data/fixture.js";
+import { Temporal } from "@js-temporal/polyfill";
 
 const rowsOf = (campaignId) =>
   fixture.filter((r) => r.campaignId === campaignId);
@@ -59,6 +68,40 @@ describe("safeDivide", () => {
   // Null
   test("returns null as denominator is null", () => {
     expect(safeDivide(1500, null)).toBe(null);
+  });
+});
+
+describe("groupBy", () => {
+  test("splits the fixture into one group per campaign", () => {
+    const groups = groupBy(fixture, (row) => row.campaignId);
+    expect(Object.keys(groups)).toHaveLength(7);
+  });
+
+  test("keeps every row of a group, in original order", () => {
+    const groups = groupBy(fixture, (row) => row.campaignId);
+    expect(groups["meta:23861450"]).toEqual(rowsOf("meta:23861450"));
+    expect(groups["meta:23861450"]).toHaveLength(3); // absent on Oct 22
+  });
+
+  test("returns no groups for empty input", () => {
+    expect(Object.keys(groupBy([], (row) => row.campaignId))).toHaveLength(0);
+  });
+});
+
+describe("isMature", () => {
+  const day = (s) => Temporal.PlainDate.from(s);
+  const asOfDay = day(asOf); // 2026-11-05
+
+  test("mature when date + n is before asOf", () => {
+    expect(isMature(day("2026-10-20"), 7, asOfDay)).toBe(true);
+  });
+
+  test("mature when date + n equals asOf", () => {
+    expect(isMature(day("2026-11-02"), 3, asOfDay)).toBe(true);
+  });
+
+  test("not mature when date + n is after asOf", () => {
+    expect(isMature(day("2026-11-02"), 7, asOfDay)).toBe(false);
   });
 });
 

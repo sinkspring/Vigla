@@ -33,3 +33,11 @@
   - A ratio with no denominator has no value. `0` would read as a real result, and `Infinity` or `NaN` would break sorting and formatting.
 - ADR-012 — Partial groups: a group cell is shown when at least 50% of its spend passes the maturity and field filters; 50% to under 100% is marked `*`, below 50% is blank
   - The 50% threshold: partly mature data can still show the performance trend on projects with a short conversion window
+- ADR-013 — `groupBy` returns a plain object built with Object.groupBy
+  - Group keys are strings (campaign id, country code, ISO date), so an object’s string keys are enough. The result has a null prototype, so keys such as "constructor" cannot collide with inherited properties
+  - Object keys work directly with `Object.entries` and with JSON, which saved views will need
+  - Accepted costs: integer-like keys are ordered before others, and `Object.groupBy` needs browsers from March 2024
+- ADR-014 — Date representation: Temporal.PlainDate for dates inside the dashboard; incoming data and persisted saved views store dates as ISO strings ("YYYY-MM-DD"). The conversion is carried out by one internal function
+  - Flexibility when working with dates: no need to worry about time zones, and all the validation takes place in one place
+  - Temporal is supported by all popular browsers (Safari from 27.3 which will be released soon), except for Samsung Browser, so the `@js-temporal/polyfill` library is imported to ensure consistency
+  - The size of the library is minuscule compared with the rest of the app: about 46 kB gzipped, against about 1 MB of fonts
