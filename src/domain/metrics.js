@@ -72,9 +72,9 @@ function sumBy(rows, field) {
   return sumByFunc(rows, (row) => row[field]);
 }
 
-/** Divides numerator by denominator. Returns null when the denominator is 0, null or undefined (ADR-011).
+/** Divides numerator by denominator. Returns null when the denominator is 0, or when either value is null or undefined (ADR-011).
  *
- * @param {number} numerator
+ * @param {number | null} numerator
  * @param {number | null} denominator
  * @returns {number | null}
  */
@@ -174,7 +174,9 @@ function aggregate(rows, n, asOf) {
     return {
       spend,
       installs: sumBy(passing, "installs"),
-      coverage: safeDivide(spend ?? 0, totalSpend),
+      coverage: totalSpend
+        ? safeDivide(spend ?? 0, totalSpend)
+        : safeDivide(passing.length, rows.length),
     };
   };
 
@@ -308,6 +310,7 @@ function compareBy(getValue, direction = "asc") {
     if (y == null) return -1;
     if (typeof x === "string" && typeof y === "string")
       return sign * x.localeCompare(y);
+    if (typeof x !== typeof y) return sign * (typeof x === "number" ? -1 : 1);
     return sign * (x - y);
   };
 }

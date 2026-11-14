@@ -196,6 +196,29 @@ describe("aggregate", () => {
       revenue: empty,
     });
   });
+
+  test("zero-spend group: coverage is the share of rows that pass", () => {
+    const rows = [
+      { date: "2026-10-01", spend: 0, installs: 5, impressions: 100 },
+      { date: "2026-10-02", spend: 0, installs: 3, impressions: null },
+    ];
+    const { all, impressions, revenue } = aggregate(rows, 7, asOf);
+    // Spend share would be 0 ÷ 0, so rows are counted instead
+    expect(all).toEqual({ sum: null, spend: 0, installs: 8, coverage: 1 });
+    // 1 of 2 rows has impressions
+    expect(impressions.coverage).toBe(0.5);
+    // No row has D7 revenue
+    expect(revenue.coverage).toBe(0);
+  });
+
+  test("group with spend: coverage is still the spend share, not the row share", () => {
+    const rows = [
+      { date: "2026-10-01", spend: 90, installs: 5, impressions: 100 },
+      { date: "2026-10-02", spend: 10, installs: 3, impressions: null },
+    ];
+    // 1 of 2 rows, but 90 of 100 spend
+    expect(aggregate(rows, 0, asOf).impressions.coverage).toBe(0.9);
+  });
 });
 
 describe("filterRows", () => {
@@ -423,6 +446,18 @@ describe("compareBy", () => {
     expect(asc).toEqual([1, 2, 3, null]);
     expect(desc).toEqual([3, 2, 1, null]);
   });
+
+  test("mixed types: a number goes before a string, reversed when descending", () => {
+    const self = (x) => x;
+    expect(compareBy(self)(1, "a")).toBeLessThan(0);
+    expect(compareBy(self)("a", 1)).toBeGreaterThan(0);
+    expect(compareBy(self, "desc")(1, "a")).toBeGreaterThan(0);
+    expect(compareBy(self, "desc")("a", 1)).toBeLessThan(0);
+  });
+
+  test("mixed types: never returns NaN", () => {
+    expect(compareBy((x) => x)("a", 1)).not.toBeNaN();
+  });
 });
 
 describe("sortRows", () => {
@@ -443,6 +478,26 @@ describe("sortRows", () => {
     expect(sortRows(rows, (r) => r.name).map((r) => r.name)).toEqual([
       "BR_broad_CPI",
       "US_LaL-1%",
+    ]);
+  });
+
+    test("mixed types: numbers, then strings, then nulls", () => {
+    const rows = ["b", 2, null, "a", 10, 1].map((v) => ({ v }));
+    expect(sortRows(rows, (r) => r.v).map((r) => r.v)).toEqual([
+      1,
+      2,
+      10,
+      "a",
+      "b",
+      null,
+    ]);
+    expect(sortRows(rows, (r) => r.v, "desc").map((r) => r.v)).toEqual([
+      "b",
+      "a",
+      10,
+      2,
+      1,
+      null,
     ]);
   });
 });
@@ -548,5 +603,35 @@ describe("buildTable", () => {
     for (const cell of Object.values(table.total.cells)) {
       expect(cell).toMatchObject({ value: null, state: "blank", text: "" });
     }
+  });
+
+    test("zero-spend group: shows spend and installs, ROAS is undefined", () => {
+    const rows = [
+      {
+        date: "2026-10-01",
+        campaignId: "organic:x",
+        country: "US",
+        spend: 0,
+        installs: 5,
+        iapRevD0: 3,
+      },
+    ];
+    const { cells } = buildTable(rows, {
+      keyFunc: (r) => r.campaignId,
+      columns: [
+        { metric: "spend" },
+        { metric: "installs" },
+        { metric: "roas" },
+      ],
+      asOf,
+    }).rows[0];
+    expect(cells.spend).toMatchObject({ text: "$0", state: "value" });
+    expect(cells.installs).toMatchObject({ text: "5", state: "value" });
+    // Denominator (spend) is 0 → "—", not a blank cell
+    expect(cells.roasD0).toMatchObject({
+      value: null,
+      text: "—",
+      state: "undefined",
+    });
   });
 });
