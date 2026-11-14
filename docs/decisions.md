@@ -37,7 +37,14 @@
   - Group keys are strings (campaign id, country code, ISO date), so an object’s string keys are enough. The result has a null prototype, so keys such as "constructor" cannot collide with inherited properties
   - Object keys work directly with `Object.entries` and with JSON, which saved views will need
   - Accepted costs: integer-like keys are ordered before others, and `Object.groupBy` needs browsers from March 2024
-- ADR-014 — Date representation: Temporal.PlainDate for dates inside the dashboard; incoming data and persisted saved views store dates as ISO strings ("YYYY-MM-DD"). The conversion is carried out by one internal function
+- ADR-014 — Date representation: Temporal.PlainDate for dates inside the dashboard; incoming data and persisted saved views store dates as ISO strings ("YYYY-MM-DD"). The conversion is carried out by one internal function (`parseRow`)
   - Flexibility when working with dates: no need to worry about time zones, and all the validation takes place in one place
   - Temporal is supported by all popular browsers (Safari from 27.3 which will be released soon), except for Samsung Browser, so the `@js-temporal/polyfill` library is imported to ensure consistency
-  - The size of the library is minuscule compared with the rest of the app: about 46 kB gzipped, against about 1 MB of fonts
+  - The size of the library is minuscule compared with the rest of the app
+  - Until `parseRow` function is written, core functions will convert `date` plain strings into `Temporal.PlainDate` inside themselves, to be changed further in the project
+- ADR-015 — Money and rounding: amounts stay unrounded USD numbers (JS `number`) in data and calculations; values are rounded only for display, in `formatMetric` with `Intl.NumberFormat`
+  - Ratios are Σ ÷ Σ over unrounded values, so a rounded intermediate never reaches a metric (CPI rounded to $3.77 before reuse would mess with totals and ROAS)
+  - Sources deliver amounts with cent precision (2 decimals), and float error (`0.1 + 0.2`) is far below the 2 decimals shown
+  - Display precision follows the glossary formats (domain.md)
+  - `null`, `NaN` and `Infinity` are shown as `—` and checked before formatting, because `Intl.NumberFormat` formats `null` as `$0.00`
+  - Note: rounded rows may not add up exactly to the rounded total; tests compare computed ratios with `toBeCloseTo`, not `toBe`
