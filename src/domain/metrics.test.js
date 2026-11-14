@@ -481,7 +481,7 @@ describe("sortRows", () => {
     ]);
   });
 
-    test("mixed types: numbers, then strings, then nulls", () => {
+  test("mixed types: numbers, then strings, then nulls", () => {
     const rows = ["b", 2, null, "a", 10, 1].map((v) => ({ v }));
     expect(sortRows(rows, (r) => r.v).map((r) => r.v)).toEqual([
       1,
@@ -605,7 +605,7 @@ describe("buildTable", () => {
     }
   });
 
-    test("zero-spend group: shows spend and installs, ROAS is undefined", () => {
+  test("zero-spend group: shows spend and installs, ROAS is undefined", () => {
     const rows = [
       {
         date: "2026-10-01",
