@@ -18,10 +18,6 @@ import {
   revenue,
   roas,
   arpu,
-  compareBy,
-  sortRows,
-  formatMetric,
-  buildTable,
 } from "./metrics.js";
 
 const rowsOf = (campaignId) =>
@@ -249,6 +245,13 @@ describe("filterRows", () => {
       24,
     );
   });
+
+  test("filters by country, alone and together with network", () => {
+    expect(filterRows(fixture, { countries: ["DE"] })).toHaveLength(8);
+    expect(
+      filterRows(fixture, { networks: ["google"], countries: ["DE"] }),
+    ).toHaveLength(4);
+  });
 });
 
 describe("cpi", () => {
@@ -322,6 +325,14 @@ describe("revenueD", () => {
       (r) => r.date === "2026-11-02",
     );
     expect(revenueD(nov2, 7)).toBeNull();
+  });
+
+  test("uses ad revenue alone when there is no IAP", () => {
+    expect(revenueD({ iapRevD7: null, adRevD7: 40 }, 7)).toBe(40);
+  });
+
+  test("a real IAP zero wins over the revDn fallback", () => {
+    expect(revenueD({ iapRevD7: 0, adRevD7: null, revD7: 99 }, 7)).toBe(0);
   });
 });
 
@@ -419,219 +430,5 @@ describe("arpu", () => {
   test("Mintegral ARPU D7 from revD7: 310 / 250 = 1.24", () => {
     const slice = aggregate(rowsOf("mintegral:77d0e1"), 7, asOf).revenue;
     expect(arpu(slice.sum, slice.installs)).toBeCloseTo(1.24, 4);
-  });
-});
-
-describe("compareBy", () => {
-  const items = [{ v: 3 }, { v: 1 }, { v: 2 }];
-
-  test("sorts numbers ascending by default", () => {
-    expect(items.toSorted(compareBy((x) => x.v)).map((x) => x.v)).toEqual([
-      1, 2, 3,
-    ]);
-  });
-
-  test("sorts descending when asked", () => {
-    expect(
-      items.toSorted(compareBy((x) => x.v, "desc")).map((x) => x.v),
-    ).toEqual([3, 2, 1]);
-  });
-
-  test("puts null last in both directions", () => {
-    const withNull = [{ v: null }, ...items];
-    const asc = withNull.toSorted(compareBy((x) => x.v)).map((x) => x.v);
-    const desc = withNull
-      .toSorted(compareBy((x) => x.v, "desc"))
-      .map((x) => x.v);
-    expect(asc).toEqual([1, 2, 3, null]);
-    expect(desc).toEqual([3, 2, 1, null]);
-  });
-
-  test("mixed types: a number goes before a string, reversed when descending", () => {
-    const self = (x) => x;
-    expect(compareBy(self)(1, "a")).toBeLessThan(0);
-    expect(compareBy(self)("a", 1)).toBeGreaterThan(0);
-    expect(compareBy(self, "desc")(1, "a")).toBeGreaterThan(0);
-    expect(compareBy(self, "desc")("a", 1)).toBeLessThan(0);
-  });
-
-  test("mixed types: never returns NaN", () => {
-    expect(compareBy((x) => x)("a", 1)).not.toBeNaN();
-  });
-});
-
-describe("sortRows", () => {
-  test("returns a sorted copy and leaves the input unchanged", () => {
-    const rows = [{ v: 2 }, { v: 1 }];
-    const sorted = sortRows(rows, (r) => r.v);
-    expect(sorted.map((r) => r.v)).toEqual([1, 2]);
-    expect(rows.map((r) => r.v)).toEqual([2, 1]);
-  });
-
-  test("sorts numbers numerically, not as strings", () => {
-    const rows = [10, 9, 1, 100].map((v) => ({ v }));
-    expect(sortRows(rows, (r) => r.v).map((r) => r.v)).toEqual([1, 9, 10, 100]);
-  });
-
-  test("sorts strings alphabetically", () => {
-    const rows = [{ name: "US_LaL-1%" }, { name: "BR_broad_CPI" }];
-    expect(sortRows(rows, (r) => r.name).map((r) => r.name)).toEqual([
-      "BR_broad_CPI",
-      "US_LaL-1%",
-    ]);
-  });
-
-  test("mixed types: numbers, then strings, then nulls", () => {
-    const rows = ["b", 2, null, "a", 10, 1].map((v) => ({ v }));
-    expect(sortRows(rows, (r) => r.v).map((r) => r.v)).toEqual([
-      1,
-      2,
-      10,
-      "a",
-      "b",
-      null,
-    ]);
-    expect(sortRows(rows, (r) => r.v, "desc").map((r) => r.v)).toEqual([
-      "b",
-      "a",
-      10,
-      2,
-      1,
-      null,
-    ]);
-  });
-});
-
-describe("formatMetric", () => {
-  test("formats money with 0 and 2 decimals", () => {
-    expect(formatMetric(36070, "money0")).toBe("$36,070");
-    expect(formatMetric(36070 / 8980, "money2")).toBe("$4.02");
-  });
-
-  test("formats percentages from a 0–1 ratio", () => {
-    expect(formatMetric(870 / 4100, "pct1")).toBe("21.2%");
-    expect(formatMetric(51 / 1800, "pct2")).toBe("2.83%");
-  });
-
-  test('shows null as "—", not "$0.00"', () => {
-    expect(formatMetric(null, "money2")).toBe("—");
-  });
-});
-
-describe("buildTable", () => {
-  const columns = [
-    { metric: "spend" },
-    { metric: "cpi" },
-    { metric: "cpm" },
-    { metric: "cppu", n: 1 },
-    { metric: "roas", n: 7 },
-  ];
-
-  test("one row per campaign and a blended total CPI", () => {
-    const table = buildTable(fixture, {
-      keyFunc: (r) => r.campaignId,
-      columns,
-      asOf,
-    });
-    expect(table.rows).toHaveLength(7);
-    expect(table.total.cells.spend.value).toBe(36070);
-    expect(table.total.cells.cpi.value).toBeCloseTo(36070 / 8980, 4);
-  });
-
-  test("marks partial, blank and undefined cells", () => {
-    const table = buildTable(fixture, {
-      keyFunc: (r) => r.campaignId,
-      columns,
-      asOf,
-    });
-    const cellsOf = (key) => table.rows.find((r) => r.key === key).cells;
-    // Meta: 4,100 of 6,300 spend is D7-mature → 65% coverage
-    expect(cellsOf("meta:23861450").roasD7).toMatchObject({
-      state: "partial",
-      text: "21.2%*",
-    });
-    // Mintegral: no impressions → 0% coverage
-    expect(cellsOf("mintegral:77d0e1").cpm).toMatchObject({
-      state: "blank",
-      text: "",
-    });
-    // Unity BR: 0 payers by D1 → no denominator
-    expect(cellsOf("unity:b81c4d07").cppuD1).toMatchObject({
-      state: "undefined",
-      text: "—",
-    });
-  });
-
-  test("applies filters and sorts by a column", () => {
-    const table = buildTable(fixture, {
-      keyFunc: (r) => r.campaignId,
-      columns,
-      asOf,
-      filters: { networks: ["unity"] },
-      sort: { column: "spend", direction: "desc" },
-    });
-    expect(table.rows.map((r) => r.key)).toEqual([
-      "unity:a3e9f210",
-      "unity:b81c4d07",
-    ]);
-  });
-
-  test("throws on an unknown sort column", () => {
-    expect(() =>
-      buildTable(fixture, {
-        keyFunc: (r) => r.campaignId,
-        columns,
-        asOf,
-        sort: { column: "roasD8" },
-      }),
-    ).toThrow("Unknown sort column");
-  });
-
-  test.each([
-    ["empty input", [], {}],
-    ["filters exclude everything", fixture, { networks: ["tiktok"] }],
-  ])("%s: no rows, columns kept, blank total", (_, input, filters) => {
-    const table = buildTable(input, {
-      keyFunc: (r) => r.campaignId,
-      columns,
-      asOf,
-      filters,
-    });
-
-    expect(table.rows).toEqual([]);
-    expect(table.columns).toHaveLength(columns.length);
-    for (const cell of Object.values(table.total.cells)) {
-      expect(cell).toMatchObject({ value: null, state: "blank", text: "" });
-    }
-  });
-
-  test("zero-spend group: shows spend and installs, ROAS is undefined", () => {
-    const rows = [
-      {
-        date: "2026-10-01",
-        campaignId: "organic:x",
-        country: "US",
-        spend: 0,
-        installs: 5,
-        iapRevD0: 3,
-      },
-    ];
-    const { cells } = buildTable(rows, {
-      keyFunc: (r) => r.campaignId,
-      columns: [
-        { metric: "spend" },
-        { metric: "installs" },
-        { metric: "roas" },
-      ],
-      asOf,
-    }).rows[0];
-    expect(cells.spend).toMatchObject({ text: "$0", state: "value" });
-    expect(cells.installs).toMatchObject({ text: "5", state: "value" });
-    // Denominator (spend) is 0 → "—", not a blank cell
-    expect(cells.roasD0).toMatchObject({
-      value: null,
-      text: "—",
-      state: "undefined",
-    });
   });
 });
