@@ -48,3 +48,6 @@
   - Display precision follows the glossary formats (domain.md)
   - `null`, `NaN` and `Infinity` are shown as `—` and checked before formatting, because `Intl.NumberFormat` formats `null` as `$0.00`
   - Note: rounded rows may not add up exactly to the rounded total; tests compare computed ratios with `toBeCloseTo`, not `toBe`
+- ADR-016 — Package manager: pnpm instead of npm
+  - The main advantage is strict `node_modules/`
+  - pnpm is also faster although it's not important at the current stage of the project
