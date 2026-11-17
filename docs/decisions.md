@@ -33,6 +33,8 @@
   - A ratio with no denominator has no value. `0` would read as a real result, and `Infinity` or `NaN` would break sorting and formatting.
 - ADR-012 — Partial groups: a group cell is shown when at least 50% of its spend passes the maturity and field filters; 50% to under 100% is marked `*`, below 50% is blank
   - The 50% threshold: partly mature data can still show the performance trend on projects with a short conversion window
+  - The 50% threshold is one named constant, `MIN_COVERAGE = 0.5` in `buildTable`
+  - Later it will become a setting in the UI, stored in the view: e.g. `minimumCoverage = 1` hides every cell with immature cohorts
 - ADR-013 — `groupBy` returns a plain object built with Object.groupBy
   - Group keys are strings (campaign id, country code, ISO date), so an object’s string keys are enough. The result has a null prototype, so keys such as "constructor" cannot collide with inherited properties
   - Object keys work directly with `Object.entries` and with JSON, which saved views will need
