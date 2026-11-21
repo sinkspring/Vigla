@@ -1,4 +1,7 @@
 import "./styles.css";
+import { fixture, campaigns, asOf } from "./data/fixture.js";
+import { defaultView, tableOptions } from "./state/view.js";
+import { buildTable } from "./domain/table.js";
 
 const header = document.createElement("header");
 const title = document.createElement("h1");
@@ -15,3 +18,12 @@ const footer = document.createElement("footer");
 footer.textContent = "by dev@bykalita.dev";
 
 document.body.append(header, main, footer);
+
+const state = {
+  rows: fixture,
+  campaigns,
+  asOf,
+  view: structuredClone(defaultView),
+};
+
+const table = buildTable(state.rows, tableOptions(state));
