@@ -146,22 +146,34 @@ function buildCell(column, stats) {
  * @param {Array<Object>} rows - Daily rows
  * @param {Object} options
  * @param {(row: Object) => string} options.keyFunc - Group key, e.g. `(row) => row.campaignId`
- * @param {Array<{metric: string, n?: number}>} options.columns - Metrics to show, in order.
+ * @param {(key: string) => string | undefined} [options.labelOf] - Row name for a group key; if it returns nothing, the key itself is shown
+ * @param {Array<{metric: string, n?: number}>} options.columns - Metrics to show, in order
  *   `n` is the cohort window in days and defaults to 0. e.g. `[{ metric: "spend" }, { metric: "roas", n: 7 }]`
  * @param {string | Temporal.PlainDate} options.asOf - Last day the upload's revenue covers
  * @param {Object} [options.filters] - Passed to filterRows
- * @param {{column: string, direction?: "asc" | "desc"}} [options.sort] - Column key, e.g. "spend" or "roasD7".
- *   Rows sort by cell `value`. The total row is never sorted.
- * @returns {{columns: Array<{key: string, label: string}>, rows: Array<{key: string, cells: Object}>, total: {key: string, cells: Object}}}
- * @throws {Error} If a column names an unknown metric, or `sort.column` matches no column key.
+ * @param {{column: string, direction?: "asc" | "desc"}} [options.sort] - Column key, e.g. "spend" or "roasD7", or "label" to sort by row name; the total row is never sorted
+ * @returns {{columns: Array<{key: string, label: string}>, rows: Array<{key: string, label: string, cells: Object}>, total: {key: string, label: string, cells: Object}}}
+ * @throws {Error} If a column names an unknown metric, or `sort.column` matches no column key
  */
 export function buildTable(
   rows,
-  { keyFunc, columns, asOf, filters = {}, sort = null },
+  {
+    keyFunc,
+    labelOf = () => undefined,
+    columns,
+    asOf,
+    filters = {},
+    sort = null,
+  },
 ) {
   const columnDefs = columns.map(resolveColumn);
+  const sortByLabel = sort?.column === "label";
 
-  if (sort && !columnDefs.some((column) => column.key === sort.column)) {
+  if (
+    sort &&
+    !sortByLabel &&
+    !columnDefs.some((column) => column.key === sort.column)
+  ) {
     throw new Error(`Unknown sort column: ${sort.column}`);
   }
 
@@ -186,13 +198,16 @@ export function buildTable(
 
   const tableRows = Object.entries(groups).map(([key, groupRows]) => ({
     key,
+    label: labelOf(key) ?? key,
     cells: buildCells(groupRows),
   }));
 
   const sortedRows = sort
     ? sorting.sortRows(
         tableRows,
-        (row) => row.cells[sort.column]?.value,
+        sortByLabel
+          ? (row) => row.label
+          : (row) => row.cells[sort.column]?.value,
         sort.direction,
       )
     : tableRows;
@@ -200,6 +215,6 @@ export function buildTable(
   return {
     columns: columnDefs.map(({ key, label }) => ({ key, label })),
     rows: sortedRows,
-    total: { key: "Total", cells: buildCells(filtered) },
+    total: { key: "Total", label: "Total", cells: buildCells(filtered) },
   };
 }

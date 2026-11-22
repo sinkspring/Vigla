@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fixture, asOf } from "../data/fixture.js";
+import { fixture, asOf, campaigns } from "../data/fixture.js";
 import { buildTable } from "./table.js";
 
 describe("buildTable", () => {
@@ -171,5 +171,53 @@ describe("buildTable", () => {
         asOf,
       }),
     ).toThrow("Unknown metric");
+  });
+
+  describe("row labels", () => {
+    const names = new Map(campaigns.map((c) => [c.id, c.name]));
+    const options = {
+      keyFunc: (r) => r.campaignId,
+      labelOf: (key) => names.get(key),
+      columns,
+      asOf,
+    };
+    const keys = (table) => table.rows.map((r) => r.key);
+
+    test("rows get campaign names, the total its own", () => {
+      const table = buildTable(fixture, options);
+      const row = table.rows.find((r) => r.key === "applovin:5f8a66qb");
+      expect(row.label).toBe("US_Puzzle,Android_ROAS");
+      expect(table.total.label).toBe("Total");
+    });
+
+    test("a key without a name shows the key itself", () => {
+      const table = buildTable(fixture, {
+        ...options,
+        labelOf: () => undefined,
+      });
+      for (const row of table.rows) expect(row.label).toBe(row.key);
+    });
+
+    test.each(["asc", "desc"])(
+      "sorts by name %s, equal names keep their order",
+      (direction) => {
+        const before = keys(buildTable(fixture, options));
+        const table = buildTable(fixture, {
+          ...options,
+          sort: { column: "label", direction },
+        });
+
+        const labels = table.rows.map((r) => r.label);
+        const expected = labels.toSorted((a, b) => a.localeCompare(b));
+        expect(labels).toEqual(
+          direction === "asc" ? expected : expected.toReversed(),
+        );
+
+        // Both are named "DE_Puzzle_Android"
+        const pair = ["applovin:7c21d9ka", "google:48210377"];
+        const pairOrder = (list) => list.filter((key) => pair.includes(key));
+        expect(pairOrder(keys(table))).toEqual(pairOrder(before));
+      },
+    );
   });
 });

@@ -23,8 +23,10 @@ const defaultView = {
  * @returns {Object} Options for `buildTable`
  */
 function tableOptions(state) {
+  const names = new Map(state.campaigns.map((c) => [c.id, c.name]));
   return {
     keyFunc: (r) => r.campaignId,
+    labelOf: (key) => names.get(key),
     asOf: state.asOf,
     columns: state.view.columns,
     filters: state.view.filters,

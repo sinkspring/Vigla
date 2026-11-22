@@ -19,11 +19,19 @@ footer.textContent = "by dev@bykalita.dev";
 
 document.body.append(header, main, footer);
 
+// TEMP: check of buildTable output;
 const state = {
   rows: fixture,
   campaigns,
   asOf,
   view: structuredClone(defaultView),
 };
-
 const table = buildTable(state.rows, tableOptions(state));
+const rows = [...table.rows, table.total].map((row) => ({
+  name: row.label,
+  ...Object.fromEntries(
+    table.columns.map((column) => [column.label, row.cells[column.key].text]),
+  ),
+}));
+
+console.table(rows, ["name", "Spend", "CPI", "ROAS D7"]);
