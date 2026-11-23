@@ -44,7 +44,8 @@ main {
 }
 
 header,
-footer {
+footer,
+thead {
   font-family: "Monaspace Xenon", monospace, serif, system-ui;
 }
 
@@ -56,4 +57,55 @@ footer {
   text-align: end;
   font-size: 0.7rem;
   color: var(--accent-color-draft);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+thead th {
+  color: var(--accent-color-draft);
+  border-bottom: 2px solid var(--ink-color-draft);
+  border-right: 1px solid var(--ink-color-draft);
+}
+
+thead button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0px 6px;
+  cursor: pointer;
+}
+
+tbody tr,
+tfoot tr {
+  text-align: center;
+}
+
+tbody td,
+tfoot td {
+  border-right: 1px solid var(--ink-color-draft);
+  padding: 6px;
+}
+
+tbody td {
+  border-bottom: 0.5px solid var(--ink-color-draft);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+th[scope="row"] {
+  text-align: left;
+  padding: 0px 6px;
+  border-left: 2px solid var(--ink-color-draft);
+  border-right: 2px solid var(--ink-color-draft);
+  border-top: 1px solid var(--ink-color-draft);
+}
+
+tfoot th,
+tfoot td {
+  border-top: 1px solid var(--ink-color-draft);
 }

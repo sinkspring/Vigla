@@ -1,37 +1,15 @@
 import "./styles.css";
 import { fixture, campaigns, asOf } from "./data/fixture.js";
-import { defaultView, tableOptions } from "./state/view.js";
-import { buildTable } from "./domain/table.js";
+import { defaultView } from "./state/view.js";
+import { render } from "./ui/render.js";
 
-const header = document.createElement("header");
-const title = document.createElement("h1");
-title.textContent = "Vigla";
-header.append(title);
-
-const main = document.createElement("main");
-const description = document.createElement("p");
-description.textContent =
-  "UA dashboard for user acquisition in mobile game development";
-main.append(description);
-
-const footer = document.createElement("footer");
-footer.textContent = "by dev@bykalita.dev";
-
-document.body.append(header, main, footer);
-
-// TEMP: check of buildTable output;
 const state = {
   rows: fixture,
   campaigns,
   asOf,
   view: structuredClone(defaultView),
 };
-const table = buildTable(state.rows, tableOptions(state));
-const rows = [...table.rows, table.total].map((row) => ({
-  name: row.label,
-  ...Object.fromEntries(
-    table.columns.map((column) => [column.label, row.cells[column.key].text]),
-  ),
-}));
 
-console.table(rows, ["name", "Spend", "CPI", "ROAS D7"]);
+const table = document.querySelector("#mainContainer");
+
+render(state, table);

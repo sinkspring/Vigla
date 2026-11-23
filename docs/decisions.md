@@ -53,3 +53,6 @@
 - ADR-016 — Package manager: pnpm instead of npm
   - The main advantage is strict `node_modules/`
   - pnpm is also faster although it's not important at the current stage of the project
+- ADR-017 — Producing DOM from data: `document.createElement` + `textContent`
+  - Campaign names come from uploaded files, so markup in them must stay text; `innerHTML` would run it
+  - Accepted cost: more code than a template string
