@@ -128,6 +128,15 @@ function revenueD(row, n) {
   return row[`revD${n}`] ?? null;
 }
 
+/** Network of a campaign: the part of its id before the colon
+ *
+ * @param {string} campaignId - e.g. `"applovin:5f8a66qb"`
+ * @returns {string} e.g. `"applovin"`
+ */
+function networkOf(campaignId) {
+  return campaignId.split(":")[0];
+}
+
 /** Keeps the rows that pass the screen filters (install dates, network, country).
  *
  * Every filter is optional (missing or empty filter keeps all rows)
@@ -150,7 +159,7 @@ function filterRows(rows, { from, to, networks, countries } = {}) {
     if (fromDate && Temporal.PlainDate.compare(date, fromDate) < 0)
       return false;
     if (toDate && Temporal.PlainDate.compare(date, toDate) > 0) return false;
-    if (networks?.length && !networks.includes(row.campaignId.split(":")[0]))
+    if (networks?.length && !networks.includes(networkOf(row.campaignId)))
       return false;
     if (countries?.length && !countries.includes(row.country)) return false;
     return true;
@@ -300,6 +309,7 @@ export {
   groupBy,
   isMature,
   revenueD,
+  networkOf,
   filterRows,
   aggregate,
   cpi,

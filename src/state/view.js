@@ -1,3 +1,5 @@
+import { networkOf } from "../domain/metrics.js";
+
 const defaultView = {
   columns: [
     { metric: "spend" },
@@ -27,6 +29,7 @@ function tableOptions(state) {
   return {
     keyFunc: (r) => r.campaignId,
     labelOf: (key) => names.get(key),
+    attributes: { network: networkOf },
     asOf: state.asOf,
     columns: state.view.columns,
     filters: state.view.filters,

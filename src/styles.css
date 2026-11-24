@@ -105,6 +105,11 @@ th[scope="row"] {
   border-top: 1px solid var(--ink-color-draft);
 }
 
+td.network {
+  font-weight: bold;
+  border-right: 2px solid var(--ink-color-draft);
+}
+
 tfoot th,
 tfoot td {
   border-top: 1px solid var(--ink-color-draft);

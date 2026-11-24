@@ -130,6 +130,25 @@ function buildCell(column, stats) {
   };
 }
 
+/** Picks what rows are sorted by: the label, an attribute or a cell value.
+ *
+ * @param {string} column - `"label"`, an attribute name or a column key
+ * @param {Array<Object>} columnDefs - Resolved columns (see resolveColumn)
+ * @param {Object} attributes - The `attributes` option of buildTable
+ * @returns {(row: Object) => number | string | null}
+ * @throws {Error} If `column` matches none of them
+ */
+function sortValueOf(column, columnDefs, attributes) {
+  if (column === "label") return (row) => row.label;
+  if (Object.hasOwn(attributes, column)) {
+    return (row) => row.attributes[column];
+  }
+  if (columnDefs.some((def) => def.key === column)) {
+    return (row) => row.cells[column].value;
+  }
+  throw new Error(`Unknown sort column: ${column}`);
+}
+
 /** Builds a table: filter → group → aggregate → metric → cell state → format → sort.
  *
  * Each cell is `{ value, text, state, coverage }`, where `state` is one of domain.md's cell states:
@@ -147,19 +166,21 @@ function buildCell(column, stats) {
  * @param {Object} options
  * @param {(row: Object) => string} options.keyFunc - Group key, e.g. `(row) => row.campaignId`
  * @param {(key: string) => string | undefined} [options.labelOf] - Row name for a group key; if it returns nothing, the key itself is shown
+ * @param {Object<string, (key: string) => string>} [options.attributes] - Text columns of a group key, e.g. `{ network: networkOf }`
  * @param {Array<{metric: string, n?: number}>} options.columns - Metrics to show, in order
  *   `n` is the cohort window in days and defaults to 0. e.g. `[{ metric: "spend" }, { metric: "roas", n: 7 }]`
  * @param {string | Temporal.PlainDate} options.asOf - Last day the upload's revenue covers
  * @param {Object} [options.filters] - Passed to filterRows
- * @param {{column: string, direction?: "asc" | "desc"}} [options.sort] - Column key, e.g. "spend" or "roasD7", or "label" to sort by row name; the total row is never sorted
- * @returns {{columns: Array<{key: string, label: string}>, rows: Array<{key: string, label: string, cells: Object}>, total: {key: string, label: string, cells: Object}}}
- * @throws {Error} If a column names an unknown metric, or `sort.column` matches no column key
+ * @param {{column: string, direction?: "asc" | "desc"}} [options.sort] - Column key, e.g. "spend" or "roasD7", an attribute name, or "label" to sort by row name; the total row is never sorted
+ * @returns {{columns: Array<{key: string, label: string}>, rows: Array<{key: string, label: string, attributes: Object, cells: Object}>, total: {key: string, label: string, attributes: Object, cells: Object}}}
+ * @throws {Error} If a column names an unknown metric, or `sort.column` matches no column key or attribute
  */
 export function buildTable(
   rows,
   {
     keyFunc,
     labelOf = () => undefined,
+    attributes = {},
     columns,
     asOf,
     filters = {},
@@ -167,15 +188,8 @@ export function buildTable(
   },
 ) {
   const columnDefs = columns.map(resolveColumn);
-  const sortByLabel = sort?.column === "label";
 
-  if (
-    sort &&
-    !sortByLabel &&
-    !columnDefs.some((column) => column.key === sort.column)
-  ) {
-    throw new Error(`Unknown sort column: ${sort.column}`);
-  }
+  const sortValue = sort && sortValueOf(sort.column, columnDefs, attributes);
 
   // One aggregate per cohort window, shared by all columns with that window.
   const buildCells = (groupRows) => {
@@ -193,28 +207,37 @@ export function buildTable(
     return cells;
   };
 
+  // The total has no group key (null), so its attributes are null.
+  const attributesOf = (key) =>
+    Object.fromEntries(
+      Object.entries(attributes).map(([name, valueOf]) => [
+        name,
+        key == null ? null : valueOf(key),
+      ]),
+    );
+
   const filtered = metrics.filterRows(rows, filters);
   const groups = metrics.groupBy(filtered, keyFunc);
 
   const tableRows = Object.entries(groups).map(([key, groupRows]) => ({
     key,
     label: labelOf(key) ?? key,
+    attributes: attributesOf(key),
     cells: buildCells(groupRows),
   }));
 
   const sortedRows = sort
-    ? sorting.sortRows(
-        tableRows,
-        sortByLabel
-          ? (row) => row.label
-          : (row) => row.cells[sort.column]?.value,
-        sort.direction,
-      )
+    ? sorting.sortRows(tableRows, sortValue, sort.direction)
     : tableRows;
 
   return {
     columns: columnDefs.map(({ key, label }) => ({ key, label })),
     rows: sortedRows,
-    total: { key: "Total", label: "Total", cells: buildCells(filtered) },
+    total: {
+      key: "Total",
+      label: "Total",
+      attributes: attributesOf(null),
+      cells: buildCells(filtered),
+    },
   };
 }

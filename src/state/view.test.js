@@ -12,9 +12,10 @@ test("default view is a valid table config", () => {
   expect(() => buildTable(fixture, tableOptions(state))).not.toThrow();
 });
 
-test("tableOptions gives rows their campaign names", () => {
+test("tableOptions gives rows their campaign names and networks", () => {
   const state = { asOf, campaigns, view: defaultView };
   const table = buildTable(fixture, tableOptions(state));
   const row = table.rows.find((r) => r.key === "applovin:5f8a66qb");
   expect(row.label).toBe("US_Puzzle,Android_ROAS");
+  expect(row.attributes.network).toBe("applovin");
 });

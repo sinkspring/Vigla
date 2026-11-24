@@ -7,6 +7,7 @@ import {
   groupBy,
   isMature,
   revenueD,
+  networkOf,
   filterRows,
   aggregate,
   cpi,
@@ -214,6 +215,15 @@ describe("aggregate", () => {
     ];
     // 1 of 2 rows, but 90 of 100 spend
     expect(aggregate(rows, 0, asOf).impressions.coverage).toBe(0.9);
+  });
+});
+
+describe("networkOf", () => {
+  test.each([
+    ["applovin:5f8a66qb", "applovin"],
+    ["google:48210377", "google"],
+  ])("%s → %s", (campaignId, network) => {
+    expect(networkOf(campaignId)).toBe(network);
   });
 });
 

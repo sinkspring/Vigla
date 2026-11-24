@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { fixture, asOf, campaigns } from "../data/fixture.js";
+import { networkOf } from "./metrics.js";
 import { buildTable } from "./table.js";
 
 describe("buildTable", () => {
@@ -219,5 +220,36 @@ describe("buildTable", () => {
         expect(pairOrder(keys(table))).toEqual(pairOrder(before));
       },
     );
+  });
+  describe("row attributes", () => {
+    const options = {
+      keyFunc: (r) => r.campaignId,
+      attributes: { network: networkOf },
+      columns,
+      asOf,
+    };
+
+    test("rows get their network, the total gets null", () => {
+      const table = buildTable(fixture, options);
+      const row = table.rows.find((r) => r.key === "google:48210377");
+      expect(row.attributes.network).toBe("google");
+      expect(table.total.attributes.network).toBeNull();
+    });
+
+    test("sorts by an attribute", () => {
+      const table = buildTable(fixture, {
+        ...options,
+        sort: { column: "network", direction: "asc" },
+      });
+      expect(table.rows.map((r) => r.attributes.network)).toEqual([
+        "applovin",
+        "applovin",
+        "google",
+        "meta",
+        "mintegral",
+        "unity",
+        "unity",
+      ]);
+    });
   });
 });
