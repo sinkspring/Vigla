@@ -59,6 +59,10 @@ footer {
   color: var(--accent-color-draft);
 }
 
+search {
+  margin: 1rem 0px;
+}
+
 table {
   border-collapse: collapse;
 }

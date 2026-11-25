@@ -9,6 +9,7 @@ import {
   revenueD,
   networkOf,
   filterRows,
+  matchesName,
   aggregate,
   cpi,
   cpm,
@@ -261,6 +262,26 @@ describe("filterRows", () => {
     expect(
       filterRows(fixture, { networks: ["google"], countries: ["DE"] }),
     ).toHaveLength(4);
+  });
+
+  test("campaignIds: a list keeps those campaigns, an empty list keeps none", () => {
+    expect(
+      filterRows(fixture, { campaignIds: ["meta:23861450"] }),
+    ).toHaveLength(3);
+    expect(filterRows(fixture, { campaignIds: [] })).toEqual([]);
+  });
+});
+
+describe("matchesName", () => {
+  test.each([
+    ["DE_Puzzle_Android", "puzzle", true],
+    ["DE_Puzzle_Android", "PUZZLE", true],
+    ["DE_Puzzle_Android", "  puzzle ", true],
+    ["DE_Puzzle_Android", "", true],
+    ["DE_Puzzle_Android", "puz zle", false],
+    ["BR_broad_CPI", "puzzle", false],
+  ])("%j, %j → %s", (name, query, expected) => {
+    expect(matchesName(name, query)).toBe(expected);
   });
 });
 

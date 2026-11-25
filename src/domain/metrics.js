@@ -137,10 +137,9 @@ function networkOf(campaignId) {
   return campaignId.split(":")[0];
 }
 
-/** Keeps the rows that pass the screen filters (install dates, network, country).
+/** Keeps the rows that pass the screen filters (install dates, network, country, campaign).
  *
- * Every filter is optional (missing or empty filter keeps all rows)
- * Returns a new array
+ * Every filter is optional (missing or empty filter keeps all rows), except `campaignIds`: missing keeps all rows, an empty array keeps none
  *
  * @param {Array<Object>} rows - Daily rows (domain.md, `DailyRow`)
  * @param {Object} [filters]
@@ -148,9 +147,10 @@ function networkOf(campaignId) {
  * @param {string | Temporal.PlainDate} [filters.to] - Last install date, inclusive
  * @param {Array<string>} [filters.networks] - e.g. `["unity", "meta"]`; read from `campaignId` (ADR-004)
  * @param {Array<string>} [filters.countries] - ISO alpha-2 codes, e.g. `["US"]`
+ * @param {Array<string>} [filters.campaignIds] - e.g. the campaigns a name search found
  * @returns {Array<Object>}
  */
-function filterRows(rows, { from, to, networks, countries } = {}) {
+function filterRows(rows, { from, to, networks, countries, campaignIds } = {}) {
   const fromDate = from == null ? null : Temporal.PlainDate.from(from);
   const toDate = to == null ? null : Temporal.PlainDate.from(to);
 
@@ -162,8 +162,19 @@ function filterRows(rows, { from, to, networks, countries } = {}) {
     if (networks?.length && !networks.includes(networkOf(row.campaignId)))
       return false;
     if (countries?.length && !countries.includes(row.country)) return false;
+    if (campaignIds && !campaignIds.includes(row.campaignId)) return false;
     return true;
   });
+}
+
+/** Whether a campaign name contains the search query, ignoring case and spaces around the query.
+ *
+ * @param {string} name - Campaign name, e.g. `"DE_Puzzle_Android"`
+ * @param {string} query - Search text as typed, e.g. `"  puzzle "`
+ * @returns {boolean} true for an empty query
+ */
+function matchesName(name, query) {
+  return name.toLowerCase().includes(query.trim().toLowerCase());
 }
 
 /** Sums one group of rows into slices, one per kind of metric input,
@@ -311,6 +322,7 @@ export {
   revenueD,
   networkOf,
   filterRows,
+  matchesName,
   aggregate,
   cpi,
   cpm,

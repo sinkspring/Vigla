@@ -1,4 +1,4 @@
-import { networkOf } from "../domain/metrics.js";
+import { matchesName, networkOf } from "../domain/metrics.js";
 
 const defaultView = {
   columns: [
@@ -15,24 +15,33 @@ const defaultView = {
     { metric: "arpu", n: 7 },
   ],
   sort: { column: "spend", direction: "desc" },
-  filters: { from: null, to: null, networks: [], countries: [] },
+  filters: { from: "2026-01-01", to: null, networks: [], countries: [] },
   search: "",
 };
 
 /** Turns state into `buildTable` options; the only place the view meets `buildTable`.
+ *
+ * The name search becomes a `campaignIds` filter, so the total covers only the found campaigns.
  *
  * @param {Object} state - App state
  * @returns {Object} Options for `buildTable`
  */
 function tableOptions(state) {
   const names = new Map(state.campaigns.map((c) => [c.id, c.name]));
+  const { search, filters } = state.view;
+  const campaignIds = search.trim()
+    ? state.campaigns
+        .filter((c) => matchesName(c.name, search))
+        .map((c) => c.id)
+    : undefined;
+
   return {
     keyFunc: (r) => r.campaignId,
     labelOf: (key) => names.get(key),
     attributes: { network: networkOf },
     asOf: state.asOf,
     columns: state.view.columns,
-    filters: state.view.filters,
+    filters: { ...filters, campaignIds },
     sort: state.view.sort,
   };
 }

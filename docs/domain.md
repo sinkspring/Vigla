@@ -200,6 +200,7 @@ An annotation is a dated note on one campaign or on all of them; the campaign de
 
 - v2: merge uploads by date, campaign and `asOf`, keeping cohorts up to a maximum window such as D180; an MMP file covering several networks counts as one upload per network
 - v2: country tiers and saved country groups
+- v2: sidebar filters (instead of search bar above the table): checkbox lists (network, country) and range filters on aggregated metrics (e.g. spend per campaign)
 - v2 (maybe): reconciling sources
 - v2 (maybe): targets, period-over-period deltas, percent of total and other table calculations
 - Final polish: AI integration for plain-language requests
