@@ -18,7 +18,7 @@
   color-scheme: light dark;
 
   --ink-color-draft: oklch(31.91% 0.11 319.57);
-  --accent-color-draft: oklch(72.73% 0.14 89.23);
+  --accent-color-draft: oklch(48% 0.12 89.23);
   --paper-color-draft: oklch(91.11% 0.03 84.41);
 }
 
@@ -41,6 +41,7 @@ body {
 
 main {
   font-family: "Monaspace Neon", monospace, sans-serif, system-ui;
+  margin-bottom: 1.5rem;
 }
 
 header,
@@ -87,6 +88,14 @@ tfoot tr {
   text-align: center;
 }
 
+td[data-state] {
+  text-align: right;
+}
+
+td[data-state="empty"] {
+  text-align: center;
+}
+
 tbody td,
 tfoot td {
   border-right: 1px solid var(--ink-color-draft);
@@ -117,4 +126,13 @@ td.network {
 tfoot th,
 tfoot td {
   border-top: 1px solid var(--ink-color-draft);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

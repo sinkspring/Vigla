@@ -38,6 +38,18 @@ function renderHeader(columns, sort) {
   return tr;
 }
 
+/** A span for screen readers
+ *
+ * @param {string} text
+ * @returns {HTMLSpanElement}
+ */
+function hiddenText(text) {
+  const span = document.createElement("span");
+  span.className = "visually-hidden";
+  span.textContent = text;
+  return span;
+}
+
 /** One table row: the label as a row header, the network, then one cell per column, in `columns` order.
  *
  * @param {{label: string, attributes: Object, cells: Object}} row - A row of `table.rows`, or `table.total`
@@ -62,7 +74,13 @@ function renderRow(row, columns) {
     td.dataset.state = cell.state;
     td.textContent = cell.text;
     if (cell.state === "partial") {
-      td.title = `Based on ${formatMetric(cell.coverage, "pct1")} of spend`;
+      const note = `Based on ${formatMetric(cell.coverage, "pct1")} of spend`;
+      td.title = note;
+      td.append(hiddenText(` (${note})`));
+    }
+    if (cell.state === "blank") td.append(hiddenText("Not enough data"));
+    if (cell.state === "undefined") {
+      td.append(hiddenText(" (not defined: nothing to divide by)"));
     }
     tr.append(td);
   }
@@ -78,7 +96,7 @@ function renderEmptyRow(width) {
   const td = document.createElement("td");
   td.colSpan = width;
   td.textContent = "No campaigns match the filters";
-  td.dataset.state = "empty"
+  td.dataset.state = "empty";
 
   const tr = document.createElement("tr");
   tr.append(td);
