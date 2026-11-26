@@ -56,3 +56,4 @@
 - ADR-017 — Producing DOM from data: `document.createElement` + `textContent`
   - Campaign names come from uploaded files, so markup in them must stay text; `innerHTML` would run it
   - Accepted cost: more code than a template string
+- ADR-018 — Updating the DOM after a state change: `render` rebuilds the whole table on every change; filter controls stay outside the rebuilt area
