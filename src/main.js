@@ -1,7 +1,7 @@
 import "./styles.css";
 import { fixture, campaigns, asOf } from "./data/fixture.extended.js";
 import { networkOf } from "./domain/metrics.js";
-import { defaultView } from "./state/view.js";
+import { defaultView, nextSort } from "./state/view.js";
 import { render } from "./ui/render.js";
 
 const state = {
@@ -49,6 +49,18 @@ toInput.addEventListener("change", (event) => {
 searchInput.addEventListener("input", (event) => {
   state.view.search = event.target.value;
   render(state, table);
+});
+
+table.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-key]");
+  if (!button) return;
+
+  const { key } = button.dataset;
+  state.view.sort = nextSort(state.view.sort, key);
+  render(state, table);
+
+  const buttons = table.querySelectorAll("button[data-key]");
+  [...buttons].find((b) => b.dataset.key === key)?.focus();
 });
 
 render(state, table);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { defaultView, tableOptions } from "./view.js";
+import { defaultView, tableOptions, nextSort } from "./view.js";
 import { buildTable } from "../domain/table.js";
 import { fixture, asOf, campaigns } from "../data/fixture.js";
 
@@ -42,5 +42,28 @@ describe("name search", () => {
 
   test("no match leaves no rows", () => {
     expect(tableFor("tiktok").rows).toEqual([]);
+  });
+});
+
+describe("nextSort", () => {
+  const sort = { column: "spend", direction: "desc" };
+
+  test.each([
+    ["cpi", "desc"],
+    ["roasD7", "desc"],
+    ["label", "asc"],
+    ["network", "asc"],
+  ])("a new column %s starts %s", (column, direction) => {
+    expect(nextSort(sort, column)).toEqual({ column, direction });
+  });
+
+  test.each([
+    ["asc", "desc"],
+    ["desc", "asc"],
+  ])("the same column flips %s → %s", (from, to) => {
+    expect(nextSort({ column: "cpi", direction: from }, "cpi")).toEqual({
+      column: "cpi",
+      direction: to,
+    });
   });
 });

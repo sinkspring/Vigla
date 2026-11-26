@@ -19,6 +19,8 @@ const defaultView = {
   search: "",
 };
 
+const TEXT_COLUMNS = ["label", "network"];
+
 /** Turns state into `buildTable` options; the only place the view meets `buildTable`.
  *
  * The name search becomes a `campaignIds` filter, so the total covers only the found campaigns.
@@ -46,4 +48,17 @@ function tableOptions(state) {
   };
 }
 
-export { defaultView, tableOptions };
+/** Sort after a click on a column header: the same column flips direction, another one starts with its first direction.
+ *
+ * @param {{column: string, direction: "asc" | "desc"}} sort - Current `view.sort`
+ * @param {string} column - Clicked column key, e.g. "cpi", "roasD7" or "label"
+ * @returns {{column: string, direction: "asc" | "desc"}}
+ */
+function nextSort(sort, column) {
+  if (sort.column === column) {
+    return { column, direction: sort.direction === "asc" ? "desc" : "asc" };
+  }
+  return { column, direction: TEXT_COLUMNS.includes(column) ? "asc" : "desc" };
+}
+
+export { defaultView, tableOptions, nextSort };

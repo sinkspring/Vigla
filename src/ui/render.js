@@ -5,9 +5,10 @@ import { tableOptions } from "../state/view.js";
 /** Header row: "Campaigns", "Network", then one sort button per column, in `columns` order.
  *
  * @param {Array<{key: string, label: string}>} columns - `table.columns`
+ * @param {{column: string, direction: "asc" | "desc"}} sort - `state.view.sort`
  * @returns {HTMLTableRowElement}
  */
-function renderHeader(columns) {
+function renderHeader(columns, sort) {
   const tr = document.createElement("tr");
   const nameColumns = [
     { key: "label", label: "Campaigns" },
@@ -21,6 +22,15 @@ function renderHeader(columns) {
 
     const th = document.createElement("th");
     th.scope = "col";
+    if (column.key === sort.column) {
+      const ascending = sort.direction === "asc";
+      th.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+
+      const arrow = document.createElement("span");
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = ascending ? " ▲" : " ▼"; // UX improvement
+      button.append(arrow);
+    }
     th.append(button);
     tr.append(th);
   }
@@ -67,7 +77,7 @@ export function render(state, root) {
   const table = buildTable(state.rows, tableOptions(state));
 
   const thead = document.createElement("thead");
-  thead.append(renderHeader(table.columns));
+  thead.append(renderHeader(table.columns, state.view.sort));
 
   const tbody = document.createElement("tbody");
   tbody.append(...table.rows.map((row) => renderRow(row, table.columns)));
