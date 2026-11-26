@@ -2,6 +2,11 @@ import { buildTable } from "../domain/table.js";
 import { formatMetric } from "../domain/format.js";
 import { tableOptions } from "../state/view.js";
 
+const NAME_COLUMNS = [
+  { key: "label", label: "Campaigns" },
+  { key: "network", label: "Network" },
+];
+
 /** Header row: "Campaigns", "Network", then one sort button per column, in `columns` order.
  *
  * @param {Array<{key: string, label: string}>} columns - `table.columns`
@@ -10,12 +15,8 @@ import { tableOptions } from "../state/view.js";
  */
 function renderHeader(columns, sort) {
   const tr = document.createElement("tr");
-  const nameColumns = [
-    { key: "label", label: "Campaigns" },
-    { key: "network", label: "Network" },
-  ];
 
-  for (const column of [...nameColumns, ...columns]) {
+  for (const column of [...NAME_COLUMNS, ...columns]) {
     const button = document.createElement("button");
     button.dataset.key = column.key;
     button.textContent = column.label;
@@ -68,6 +69,22 @@ function renderRow(row, columns) {
   return tr;
 }
 
+/** The row shown if filters are too strict / incorrect.
+ *
+ * @param {number} width - Number of table columns the message spans
+ * @returns {HTMLTableRowElement}
+ */
+function renderEmptyRow(width) {
+  const td = document.createElement("td");
+  td.colSpan = width;
+  td.textContent = "No campaigns match the filters";
+  td.dataset.state = "empty"
+
+  const tr = document.createElement("tr");
+  tr.append(td);
+  return tr;
+}
+
 /** Renders the campaign table into `root`
  *
  * @param {Object} state - App state: `rows`, `campaigns`, `asOf`, `view`
@@ -80,12 +97,18 @@ export function render(state, root) {
   thead.append(renderHeader(table.columns, state.view.sort));
 
   const tbody = document.createElement("tbody");
-  tbody.append(...table.rows.map((row) => renderRow(row, table.columns)));
-
-  const tfoot = document.createElement("tfoot");
-  tfoot.append(renderRow(table.total, table.columns));
-
   const element = document.createElement("table");
-  element.append(thead, tbody, tfoot);
+  element.append(thead, tbody);
+
+  // An empty total adds nothing to the message, so there is no footer
+  if (table.rows.length === 0) {
+    tbody.append(renderEmptyRow(NAME_COLUMNS.length + table.columns.length));
+  } else {
+    tbody.append(...table.rows.map((row) => renderRow(row, table.columns)));
+
+    const tfoot = document.createElement("tfoot");
+    tfoot.append(renderRow(table.total, table.columns));
+    element.append(tfoot);
+  }
   root.replaceChildren(element);
 }
